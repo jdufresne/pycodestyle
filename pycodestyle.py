@@ -156,11 +156,6 @@ STARTSWITH_INDENT_STATEMENT_REGEX = re.compile(
 )
 DUNDER_REGEX = re.compile(r'^__([^\s]+)__ = ')
 
-# Work around Python < 2.6 behaviour, which does not generate NL after
-# a comment which is on a line by itself.
-COMMENT_WITH_NL = tokenize.generate_tokens(['#\n'].pop).send(None)[1] == '#\n'
-
-
 _checks = {'physical_line': {}, 'logical_line': {}, 'tree': {}}
 
 
@@ -1807,11 +1802,6 @@ def _is_eol_token(token):
     return token[0] in NEWLINE or token[4][token[3][1]:].lstrip() == '\\\n'
 
 
-if COMMENT_WITH_NL:
-    def _is_eol_token(token, _eol_token=_is_eol_token):
-        return _eol_token(token) or (token[0] == tokenize.COMMENT and
-                                     token[1] == token[4])
-
 ########################################################################
 # Framework to run all checks
 ########################################################################
@@ -2078,14 +2068,6 @@ class Checker(object):
                         self.blank_lines += 1
                         del self.tokens[0]
                     else:
-                        self.check_logical()
-                elif COMMENT_WITH_NL and token_type == tokenize.COMMENT:
-                    if len(self.tokens) == 1:
-                        # The comment also ends a physical line
-                        token = list(token)
-                        token[1] = text.rstrip('\r\n')
-                        token[3] = (token[2][0], token[2][1] + len(token[1]))
-                        self.tokens = [tuple(token)]
                         self.check_logical()
         if self.tokens:
             self.check_physical(self.lines[-1])
